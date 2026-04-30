@@ -1,3 +1,6 @@
 symbols/
 .venv/
 .git/
+deepfake_HPC/symbols
+symbols_split
+.idea/

@@ -1,0 +1,6 @@
+run_name,hidden_size,lr,weight_decay,seq_max_len,batch_size,dropout,seed
+gru_h32_lr1e-3_wd1e-3_len512_bs32_do0_s101,32,0.001,0.001,512,32,0.0,101
+gru_h32_lr1e-3_wd1e-3_len512_bs32_do0_s202,32,0.001,0.001,512,32,0.0,202
+gru_h32_lr1e-3_wd1e-3_len512_bs32_do0_s303,32,0.001,0.001,512,32,0.0,303
+gru_h32_lr1e-3_wd1e-3_len512_bs32_do0_s404,32,0.001,0.001,512,32,0.0,404
+gru_h32_lr1e-3_wd1e-3_len512_bs32_do0_s523,32,0.001,0.001,512,32,0.0,523

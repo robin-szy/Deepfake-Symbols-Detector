@@ -1,0 +1,84 @@
+Bottleneck 3, all features(11), all global features: AUC=0.844
+epoch 18 | train_loss=0.4168 val_loss=0.4465 val_acc=0.730 val_auc=0.844 val_acc_opt=0.745 best_val_thresh=0.53 -> 2x
+On Colab bit better:
+epoch 24 | train_loss=0.3980 val_loss=0.4180 val_acc=0.734 val_auc=0.861 val_acc_opt=0.758 best_val_thresh=0.41 
+
+Bottleneck 3, no theta_sin, theta_cos, dtheta, all globals, PC: 
+epoch 25 | train_loss=0.4274 val_loss=0.4497 val_acc=0.719 val_auc=0.830 val_acc_opt=0.731 best_val_thresh=0.58 
+
+Bottleneck 3, no dx, dy, all globals, PC:
+Total parameters: 4812
+epoch 26 | train_loss=0.4025 val_loss=0.4754 val_acc=0.718 val_auc=0.839 val_acc_opt=0.743 best_val_thresh=0.58 
+
+Bottleneck 3, all seq + global features, layers GRU = 2, 
+Parameters: 11340
+Colab: epoch 32 | train_loss=0.3702 val_loss=0.4075 val_acc=0.760 val_auc=0.874 val_acc_opt=0.770 best_val_thresh=0.47 
+PC: epoch 34 | train_loss=0.3593 val_loss=0.4905 val_acc=0.736 val_auc=0.838 val_acc_opt=0.745 best_val_thresh=0.71 
+
+Global dropout = 0.1 -> 0.3: Bottleneck 3, all seq + global features, layers GRU = 2, 
+Parameters: 11340
+epoch 29 | train_loss=0.3768 val_loss=0.3894 val_acc=0.766 val_auc=0.879 val_acc_opt=0.770 best_val_thresh=0.49 
+
+Bottleneck 3, all seq + global features, layers GRU = 3, global dropout = 0.1 Colab
+Parameters: 17676
+epoch 35 | train_loss=0.3796 val_loss=0.4331 val_acc=0.755 val_auc=0.869 val_acc_opt=0.758 best_val_thresh=0.49 
+
+Global dropout = 0.1 -> 0.3, bottleneck 3, all seq + global features, layers GRU = 3, Colab
+Parameters: 17676
+epoch 55 | train_loss=0.3579 val_loss=0.4194 val_acc=0.758 val_auc=0.874 val_acc_opt=0.769 best_val_thresh=0.47 
+
+Global dropout = 0.3: Bottleneck 2, all seq + global features, layers GRU = 2, Colab, 
+Parameters: 11340
+epoch 29 | train_loss=0.3768 val_loss=0.3894 val_acc=0.766 val_auc=0.879 val_acc_opt=0.770 best_val_thresh=0.49 
+
+Global dropout = 0.3: Bottleneck 4, all seq + global features, layers GRU = 2, Colab, 
+Total parameters: 11365
+epoch 47 | train_loss=0.3567 val_loss=0.4151 val_acc=0.761 val_auc=0.876 val_acc_opt=0.770 best_val_thresh=0.58 
+
+Normal dropout 0.1, Global dropout = 0.3: Bottleneck 4, all seq + global features, layers GRU = 2, Colab, 
+Total parameters: 11365
+
+
+
+Repeat best model for different seed. So far:
+1) Bottleneck 3, all seq + global features, layers GRU = 2,  Parameters: 11340
+	Seed 523, PC: val_acc=0.736 val_auc=0.838 
+	Seed 523, Colab: val_acc=0.760 val_auc=0.874
+	Seed 1001, PC: epoch 30 | val_acc=0.713 val_auc=0.825
+	Seed 523, Colab: epoch 45 | val_acc=0.751 val_auc=0.867  
+	Seed 1001, Colab: epoch 35 | val_acc=0.748 val_auc=0.852 
+	Seed 226, Colab: epoch 33 | val_acc=0.727 val_auc=0.845 
+	Seed 2546, Colab: epoch 27 | val_acc=0.734 val_auc=0.846
+	Seed 9999, Colab: epoch 36 | val_acc=0.737 val_auc=0.852
+	
+	
+2) Bottleneck 3, all features(11), all global features, layers GRU = 1
+	Seed 523, PC: val_acc=0.730 val_auc=0.844
+	Seed 523: Colab: val_acc=0.734 val_auc=0.861
+	Seed 1001: PC: val_acc=0.740 val_auc=0.850
+	Seed 226: PC: val_acc=0.742 val_auc=0.849
+	Seed 523, Colab: Epoch 27, val_acc=0.743 val_auc=0.869 
+	Seed 1001, Colab: Epoch 47, val_acc=0.742 val_auc=0.854
+	Seed 226, Colab: Epoch 36, val_acc=0.728 val_auc=0.838
+	Seed 2546, Colab: Epoch 47, val_acc=0.718 val_auc=0.833
+	Seed 9999, Colab: Epoch 40, val_acc=0.722 val_auc=0.829
+	
+3) Bottleneck 4, all seq + global features, layers GRU=2, parameters: 11365
+	Seed 523, Colab: val_acc=0.761 val_auc=0.876
+	Seed 1001, PC: epoch 21, val_acc=0.731 val_auc=0.833
+	Seed 1001, Colab: epoch 24 , val_acc=0.728 val_auc=0.840
+	Seed 226, Colab: epoch 34, val_acc=0.710 val_auc=0.846 
+	Seed 2546, Colab: epoch 28, val_acc=0.730 val_auc=0.859 
+	With dropout 0.1:
+	Seed 523, Colab: epoch 50 val_acc=0.751 val_auc=0.868 
+	Seed 1001, Colab: epoch 30 | val_acc=0.737 val_auc=0.850 
+	Seed 226, Colab: epoch 53 | val_acc=0.719 val_auc=0.843 
+	Seed 2546, Colab: epoch 34 | val_acc=0.734 val_auc=0.852 
+	Seed 9999, Colab: epoch 23 |  val_acc=0.702 val_auc=0.829 
+
+Decide for model
+Implement final_train
+Create colab pth and PC pth file
+Compare on test set with old model (first on old pth, then trained with final_train)
+
+

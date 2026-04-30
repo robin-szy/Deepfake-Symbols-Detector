@@ -1,0 +1,11 @@
+- Look at input feature distribution. If hardly skewed -> log transform them.
+- If multimodal input feature, use tricks from p.77 Aurelion
+- Try dx, dy for movement. Before, I've always used x and y. -> I've tried that. With current setup, it does not help. But maybe with more layers or so.
+- Maurice: Ich arbeite vor allem mit Positionen dx und dy fuer die Bewegung, Geschwindigkeit, die relative Position, die Bewegungsrichtung und dem Bewegungsverlauf. Kosinus des Winkels fuer die Richtung. 29.000 Parameter.
+- I forgot to train my final model on both training and evaluation set
+- In ChatGPT: Todo-Chat: Change architecture so that global features do not dominate too easily. 
+	- There, can I even dropout the feature with the 510ms?
+- Decimal accuracy of fake is less than the one from the real one
+- Baraa uses 4 branch inception layer. He uses all 5 input features, dx, dy, and dy. He uses speed and acceleration, as well as curvature.
+
+Global features: Regularize like in other script

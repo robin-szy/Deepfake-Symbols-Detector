@@ -8,23 +8,26 @@ from torch import nn
 from torch.utils.data import Dataset, DataLoader
 from torch.nn.utils.rnn import pack_padded_sequence
 from sklearn.metrics import roc_auc_score
+import argparse
 
-# Todo: Normalize? If not, I'll also need to think about the padding during batching and how this affects angular velocities etc.
-# Todo: change from LSTM to GRU
 
-# -----------------
-# Simple config
-# -----------------
-DATA_DIR = "./symbols"          # must contain real/ and fake/
-MODEL_FILE = "model.pth"
-EPOCHS = 80
-BATCH_SIZE = 32
-LR = 1e-3
-MAX_LEN = 512 #256
-SEED = 90
-HIDDEN_SIZE = 32
-PATIENCE = 15   # Early stopping
-MIN_DELTA = 1e-4    # Early stopping
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data-dir", default="./symbols")
+    parser.add_argument("--model-file", default="model.pth")
+    parser.add_argument("--epochs", type=int, default=80)
+    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--weight-decay", type=float, default=0.0)
+    parser.add_argument("--seq-max-len", type=int, default=512)
+    parser.add_argument("--hidden-size", type=int, default=32)
+    parser.add_argument("--patience", type=int, default=15)
+    parser.add_argument("--min-delta", type=float, default=1e-4)
+    parser.add_argument("--dropout", type=float, default=0.1)
+    parser.add_argument("--seed", type=int, default=523)
+    return parser.parse_args()
+
+args = parse_args()
 
 
 # -----------------
@@ -36,17 +39,13 @@ def set_seed(seed=42):
     torch.manual_seed(seed)
 
 
-def read_sequence(path):
+def read_sequence(path, seq_max_len):
 
     df = pd.read_csv(path, sep="\t")
     df.columns = [c.lower().strip() for c in df.columns]
 
     # Normalize x/y per symbol
     xy = df[["x", "y"]].to_numpy(dtype=np.float32)
-    # Todo: Normalize? Tried once, was really bad
-    #xy = xy - xy.mean(axis=0, keepdims=True)
-    #scale = xy.std() + 1e-6
-    #xy = xy / scale
 
     x = xy[:, 0]
     y = xy[:, 1]
@@ -62,36 +61,43 @@ def read_sequence(path):
     stroke_change[1:] = (stroke_id[1:] != stroke_id[:-1]).astype(np.float32)
     dt_stroke_transition = dt * stroke_change
 
+    # Correction: Whenever stroke_ID changes, we need to reset r and dtheta to 0,
+    # as the pen is lifted and moved to a new position.
+    mask = stroke_change == 1
+    dx[mask] = 0.0
+    dy[mask] = 0.0
+    # r[mask] = 0.0
+    # dtheta[mask] = 0.0
+    # theta_sin[mask] = 0.0
+    # theta_cos[mask] = 0.0
+    # theta[mask] = 0.0
+
     # Polar coordinates and angular velocity
     r = np.sqrt(dx ** 2 + dy ** 2)
     theta = np.arctan2(dy, dx)
     theta_sin = np.sin(theta)
     theta_cos = np.cos(theta)
     theta_unwrapped = np.unwrap(theta)
-    dtheta = np.diff(theta_unwrapped, prepend=theta_unwrapped[0])   # Todo: Test
-
-    # Correction: Whenever stroke_ID changes, we need to reset r and dtheta to 0,
-    # as the pen is lifted and moved to a new position.
-    mask = stroke_change == 1
-    r[mask] = 0.0
+    dtheta = np.diff(theta_unwrapped, prepend=theta_unwrapped[0])
     dtheta[mask] = 0.0
-    theta_sin[mask] = 0.0
-    theta_cos[mask] = 0.0
-    theta[mask] = 0.0
+    theta_cos[mask] = 0.0   # Otherwise it's 1
+    abs_dtheta = np.abs(dtheta) # Different signal than just dtheta. It's the magnitude, no directional information
+
 
     seq = np.stack(
         [
             #x,
             #y,
             r,
-            #theta_unwrapped,    # Todo: Try taking out.
+            #theta_unwrapped,
             theta_sin,
             theta_cos,
             dtheta,
-            #dt,
+            #abs_dtheta,
+            dt,
             #stroke_id,
-            #stroke_change,
-            #dt_stroke_transition,   # Todo: Remove, as it's in global features?
+            stroke_change,
+            #dt_stroke_transition,
         ],
         axis=1,
     ).astype(np.float32)
@@ -105,26 +111,27 @@ def read_sequence(path):
             r.mean(),
             r.std(),
             dtheta.std(),
+            #abs_dtheta.mean()  # Todo: Put in?
         ],
         dtype=np.float32,
     )
 
-    if len(seq) > MAX_LEN:
-        print(
-            f"Warning: For the sequence {path}, the maximum length was adapted.")
-        idx = np.linspace(0, len(seq) - 1, MAX_LEN).astype(int)
+    if len(seq) > seq_max_len:
+        #print(
+        #    f"Warning: For the sequence {path}, the maximum length was adapted.")
+        idx = np.linspace(0, len(seq) - 1, seq_max_len).astype(int)
         seq = seq[idx]
 
     return seq, global_features
 
 
-def compute_global_norm(items):
+def compute_global_norm(items, seq_max_len):
     """
     Helper function in order to normalize the global features
     """
     features = []
     for path, _ in items:
-        _, g = read_sequence(path)
+        _, g = read_sequence(path, seq_max_len)
         features.append(g)
 
     features = np.stack(features)
@@ -139,14 +146,14 @@ def compute_global_norm(items):
     return mean.astype(np.float32), std.astype(np.float32)
 
 
-def compute_seq_norm(items):
+def compute_seq_norm(items, seq_max_len):
     """
     Compute mean/std for sequence features using only the training set.
     """
     features = []
 
     for path, _ in items:
-        seq, _ = read_sequence(path)
+        seq, _ = read_sequence(path, seq_max_len)
         features.append(seq)
 
     features = np.concatenate(features, axis=0)
@@ -158,8 +165,9 @@ def compute_seq_norm(items):
 
 
 class SymbolDataset(Dataset):
-    def __init__(self, items, global_mean=None, global_std=None, seq_mean=None, seq_std=None):
+    def __init__(self, items, seq_max_len, global_mean=None, global_std=None, seq_mean=None, seq_std=None):
         self.items = items
+        self.seq_max_len = seq_max_len
         self.global_mean = global_mean
         self.global_std = global_std
         self.seq_mean = seq_mean
@@ -170,7 +178,7 @@ class SymbolDataset(Dataset):
 
     def __getitem__(self, idx):
         path, label = self.items[idx]
-        seq, global_features = read_sequence(path)
+        seq, global_features = read_sequence(path, self.seq_max_len)
 
         if self.seq_mean is not None:
             seq = (seq - self.seq_mean) / self.seq_std
@@ -206,19 +214,27 @@ def collate_batch(batch):
 # Model
 # -----------------
 class SmallGRU(nn.Module):
-    def __init__(self, hidden_size=HIDDEN_SIZE):
+    def __init__(self, hidden_size):
         super().__init__()
 
         self.gru = nn.GRU(
-            input_size=4,
+            input_size=6,
             hidden_size=hidden_size,
             num_layers=1,
             batch_first=True,
         )
 
+        #self.fc = nn.Sequential(
+        #    nn.LayerNorm(hidden_size + 6),
+        #    nn.Linear(hidden_size + 6, 1),
+        #)
+
         self.fc = nn.Sequential(
             nn.LayerNorm(hidden_size + 6),
-            nn.Linear(hidden_size + 6, 1),
+            nn.Linear(hidden_size + 6, 16),
+            nn.ReLU(),
+            nn.Dropout(args.dropout),
+            nn.Linear(16, 1),
         )
 
     def forward(self, x, lengths, global_features):
@@ -239,11 +255,11 @@ class SmallGRU(nn.Module):
 # -----------------
 def train():
 
-    set_seed(SEED)
+    set_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    real_files = glob.glob(os.path.join(DATA_DIR, "real", "*.csv"))
-    fake_files = glob.glob(os.path.join(DATA_DIR, "fake", "*.csv"))
+    real_files = glob.glob(os.path.join(args.data_dir, "real", "*.csv"))
+    fake_files = glob.glob(os.path.join(args.data_dir, "fake", "*.csv"))
 
     # Stratified split: Same amount of items in fake and real
     real_items = [(p, 0) for p in real_files]
@@ -259,48 +275,73 @@ def train():
     val_items = real_items[split_real:] + fake_items[split_fake:]
 
     if not train_items or not val_items:
-        raise ValueError(f"No CSV files found in {DATA_DIR}/real and {DATA_DIR}/fake")
+        raise ValueError(f"No CSV files found in {args.data_dir}/real and {args.data_dir}/fake")
 
     random.shuffle(train_items)
     random.shuffle(val_items)
 
     # Global means for normalization
-    global_mean, global_std = compute_global_norm(train_items)
-    seq_mean, seq_std = compute_seq_norm(train_items)   # Also the sequence norm you calculate globally for the training set
+    global_mean, global_std = compute_global_norm(train_items, args.seq_max_len)
+    seq_mean, seq_std = compute_seq_norm(train_items, args.seq_max_len)   # Also the sequence norm you calculate globally for the training set
+
     train_dataset = SymbolDataset(
         train_items,
-        global_mean,
-        global_std,
-        seq_mean,
-        seq_std,
+        seq_max_len=args.seq_max_len,
+        global_mean=global_mean,
+        global_std=global_std,
+        seq_mean=seq_mean,
+        seq_std=seq_std,
     )
+
     val_dataset = SymbolDataset(
         val_items,
-        global_mean,
-        global_std,
-        seq_mean,
-        seq_std,
+        seq_max_len=args.seq_max_len,
+        global_mean=global_mean,
+        global_std=global_std,
+        seq_mean=seq_mean,
+        seq_std=seq_std,
     )
 
     # Load datasets
     train_loader = DataLoader(
         train_dataset,
         #SymbolDataset(train_items),
-        batch_size=BATCH_SIZE,
+        batch_size=args.batch_size,
         shuffle=True,
         collate_fn=collate_batch,
     )
     val_loader = DataLoader(
         val_dataset,
         #SymbolDataset(val_items),
-        batch_size=BATCH_SIZE,
+        batch_size=args.batch_size,
         shuffle=False,
         collate_fn=collate_batch,
     )
 
-    model = SmallGRU().to(device)
+    model = SmallGRU(hidden_size=args.hidden_size).to(device)
+
+    # How many model parameters do I have?
+    total_params = sum(p.numel() for p in model.parameters())
+    print(f"Total parameters: {total_params}")
+    print("Parameters per layer:")
+    for name, p in model.named_parameters():
+        print(name, p.numel())
+
     loss_fn = nn.BCEWithLogitsLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=LR)
+
+    # Optimizer
+    if args.weight_decay == 0.0:
+        optimizer = torch.optim.Adam(
+            model.parameters(),
+            lr=args.lr,
+        )
+    else:
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+        )
+
 
     # Variables to save the best model (we want to save the one from an overfitted model)
     best_auc = -float("inf")
@@ -308,7 +349,7 @@ def train():
     best_threshold = None
     epochs_without_improvement = 0
 
-    for epoch in range(EPOCHS):
+    for epoch in range(args.epochs):
         model.train()
         total_train_loss, total_train = 0.0, 0
         for x, lengths, g, y in train_loader:
@@ -331,7 +372,7 @@ def train():
         val_loss, val_acc, val_auc, val_threshold, val_acc_opt = evaluate(model, val_loader, device)
 
         # Save best model (to be able to regress to earlier epoch)
-        improved = not np.isnan(val_auc) and val_auc > best_auc + MIN_DELTA # Min-delta for early stopping
+        improved = not np.isnan(val_auc) and val_auc > best_auc + args.min_delta # Min-delta for early stopping
         if improved:
             best_auc = val_auc
             best_state = {
@@ -354,7 +395,7 @@ def train():
         )
 
         # Early stopping
-        if epochs_without_improvement >= PATIENCE:
+        if epochs_without_improvement >= args.patience:
             print(
                 f"Early stopping at epoch {epoch + 1}. "
                 f"Best val AUC={best_auc:.3f}"
@@ -367,16 +408,36 @@ def train():
     # Better to use a checkpoint, so it is clear what the architecture etc was like
     checkpoint = {
         "model_state_dict": model.state_dict(),
-        "hidden_size": HIDDEN_SIZE,
-        "max_len": MAX_LEN,
+        "hidden_size": args.hidden_size,
+        "seq_max_len": args.seq_max_len,
         "global_mean": global_mean,
         "global_std": global_std,
         "seq_mean": seq_mean,
         "seq_std": seq_std,
         "threshold": best_threshold,
     }
-    torch.save(checkpoint, MODEL_FILE)
-    print(f"Saved best model to {MODEL_FILE} with AUC={best_auc:.3f}")
+    torch.save(checkpoint, args.model_file)
+    print(f"Saved best model to {args.model_file} with AUC={best_auc:.3f}")
+
+    # Summary for HPC testing (to not open every log file every time)
+    results_file = "runs/results.csv"
+    row = {
+        "model_file": args.model_file,
+        "hidden_size": args.hidden_size,
+        "lr": args.lr,
+        "weight_decay": args.weight_decay,
+        "seq_max_len": args.seq_max_len,
+        "batch_size": args.batch_size,
+        "dropout": args.dropout,
+        "seed": args.seed,
+        "best_auc": best_auc,
+    }
+
+    df = pd.DataFrame([row])
+    if os.path.exists(results_file):
+        df.to_csv(results_file, mode="a", header=False, index=False)
+    else:
+        df.to_csv(results_file, index=False)
 
 
 def evaluate(model, loader, device):
@@ -441,6 +502,7 @@ def evaluate(model, loader, device):
 def load_and_predict(directory, model_file):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
+    # Load model checkpoint
     checkpoint = torch.load(model_file, map_location=device)
 
     model = SmallGRU(hidden_size=checkpoint["hidden_size"]).to(device)
@@ -451,13 +513,17 @@ def load_and_predict(directory, model_file):
     global_std = checkpoint["global_std"]
     seq_mean = checkpoint["seq_mean"]
     seq_std = checkpoint["seq_std"]
+    seq_max_len = checkpoint["seq_max_len"]
 
     pred_dict = {}
     paths = sorted(glob.glob(os.path.join(directory, "*.csv")))
 
     with torch.no_grad():
         for path in paths:
-            seq, global_features = read_sequence(path)
+            # The following function read_sequence performs the two first steps required in eval.py:
+            # (1) Read the data from the provided directory
+            # (2) Prepare the data according to preprocessing pipeline of model training
+            seq, global_features = read_sequence(path, seq_max_len)
 
             seq = (seq - seq_mean) / seq_std
             global_features = (global_features - global_mean) / global_std
@@ -466,12 +532,16 @@ def load_and_predict(directory, model_file):
             g = torch.tensor(global_features, dtype=torch.float32).unsqueeze(
                 0).to(device)
             lengths = torch.tensor([len(seq)], dtype=torch.long).to(device)
-
             threshold = checkpoint.get("threshold", 0.5)
+
+            # Query the model with the data in order to get the predicted class probabilities for each instance.
             prob_fake = torch.sigmoid(model(x, lengths, g)).item()
+
+            # Convert probabilities to labels (integer numbers): 0 for "real" and 1 for "fake".
             pred = int(prob_fake >= threshold)
             pred_dict[os.path.abspath(path)] = pred
 
+    # Return a dictionary where keys are absolute file paths and values are the predicted labels for each file
     return pred_dict
 
 
