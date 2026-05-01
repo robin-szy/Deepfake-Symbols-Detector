@@ -1,0 +1,85 @@
+======================================
+SLURM job id:        5380288
+SLURM array task:    1
+Host:                iris-185
+Date:                Fri May  1 09:13:52 CEST 2026
+Project dir:         /home/users/rszymanski/deep_learning/deepfake_HW
+Data dir:            /home/users/rszymanski/deep_learning/deepfake_HW/symbols
+Run name:            gru_final_model_1
+Model file:          /home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_1.pth
+Hidden size:         32
+LR:                  0.001
+Weight decay:        0.001
+Seq max len:         512
+Batch size:          32
+Epochs:              42
+Dropout:             0.1
+Seed:                523
+CUDA available:
+True
+Tesla V100-SXM2-16GB
+======================================
+FINAL TRAINING MODE: Model is trained on validation and test set. No validation metrics or early stopping are used during training.
+Total parameters: 11340
+Parameters per layer:
+gru.weight_ih_l0 1056
+gru.weight_hh_l0 3072
+gru.bias_ih_l0 96
+gru.bias_hh_l0 96
+gru.weight_ih_l1 3072
+gru.weight_hh_l1 3072
+gru.bias_ih_l1 96
+gru.bias_hh_l1 96
+global_proj.0.weight 18
+global_proj.0.bias 3
+fc.0.weight 35
+fc.0.bias 35
+fc.1.weight 560
+fc.1.bias 16
+fc.4.weight 16
+fc.4.bias 1
+epoch 01 | FINAL TRAINING MODE | train_loss=0.6785
+epoch 02 | FINAL TRAINING MODE | train_loss=0.6337
+epoch 03 | FINAL TRAINING MODE | train_loss=0.5788
+epoch 04 | FINAL TRAINING MODE | train_loss=0.5280
+epoch 05 | FINAL TRAINING MODE | train_loss=0.4951
+epoch 06 | FINAL TRAINING MODE | train_loss=0.4678
+epoch 07 | FINAL TRAINING MODE | train_loss=0.4521
+epoch 08 | FINAL TRAINING MODE | train_loss=0.4484
+epoch 09 | FINAL TRAINING MODE | train_loss=0.4430
+epoch 10 | FINAL TRAINING MODE | train_loss=0.4487
+epoch 11 | FINAL TRAINING MODE | train_loss=0.4370
+epoch 12 | FINAL TRAINING MODE | train_loss=0.4367
+epoch 13 | FINAL TRAINING MODE | train_loss=0.4295
+epoch 14 | FINAL TRAINING MODE | train_loss=0.4262
+epoch 15 | FINAL TRAINING MODE | train_loss=0.4250
+epoch 16 | FINAL TRAINING MODE | train_loss=0.4173
+epoch 17 | FINAL TRAINING MODE | train_loss=0.4169
+epoch 18 | FINAL TRAINING MODE | train_loss=0.4117
+epoch 19 | FINAL TRAINING MODE | train_loss=0.4092
+epoch 20 | FINAL TRAINING MODE | train_loss=0.4035
+epoch 21 | FINAL TRAINING MODE | train_loss=0.4069
+epoch 22 | FINAL TRAINING MODE | train_loss=0.3988
+epoch 23 | FINAL TRAINING MODE | train_loss=0.3993
+epoch 24 | FINAL TRAINING MODE | train_loss=0.4006
+epoch 25 | FINAL TRAINING MODE | train_loss=0.3878
+epoch 26 | FINAL TRAINING MODE | train_loss=0.3878
+epoch 27 | FINAL TRAINING MODE | train_loss=0.3840
+epoch 28 | FINAL TRAINING MODE | train_loss=0.3832
+epoch 29 | FINAL TRAINING MODE | train_loss=0.3811
+epoch 30 | FINAL TRAINING MODE | train_loss=0.3733
+epoch 31 | FINAL TRAINING MODE | train_loss=0.3731
+epoch 32 | FINAL TRAINING MODE | train_loss=0.3715
+epoch 33 | FINAL TRAINING MODE | train_loss=0.3709
+epoch 34 | FINAL TRAINING MODE | train_loss=0.3643
+epoch 35 | FINAL TRAINING MODE | train_loss=0.3621
+epoch 36 | FINAL TRAINING MODE | train_loss=0.3673
+epoch 37 | FINAL TRAINING MODE | train_loss=0.3608
+epoch 38 | FINAL TRAINING MODE | train_loss=0.3598
+epoch 39 | FINAL TRAINING MODE | train_loss=0.3610
+epoch 40 | FINAL TRAINING MODE | train_loss=0.3543
+epoch 41 | FINAL TRAINING MODE | train_loss=0.3577
+epoch 42 | FINAL TRAINING MODE | train_loss=0.3508
+Saved final model to /home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_1.pth with threshold=0.50
+Finished run: gru_final_model_1
+Saved model: /home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_1.pth

@@ -1,0 +1,68 @@
+======================================
+SLURM job id:        5380300
+SLURM array task:    1
+Host:                iris-185
+Date:                Fri May  1 09:40:22 CEST 2026
+Project dir:         /home/users/rszymanski/deep_learning/deepfake_HW
+Data dir:            /home/users/rszymanski/deep_learning/deepfake_HW/symbols
+Run name:            gru_final_model_2
+Model file:          /home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_2.pth
+Hidden size:         32
+LR:                  0.001
+Weight decay:        0.001
+Seq max len:         512
+Batch size:          32
+Epochs:              100
+Dropout:             0.1
+Seed:                523
+CUDA available:
+True
+Tesla V100-SXM2-16GB
+======================================
+Total parameters: 5004
+Parameters per layer:
+gru.weight_ih_l0 1056
+gru.weight_hh_l0 3072
+gru.bias_ih_l0 96
+gru.bias_hh_l0 96
+global_proj.0.weight 18
+global_proj.0.bias 3
+fc.0.weight 35
+fc.0.bias 35
+fc.1.weight 560
+fc.1.bias 16
+fc.4.weight 16
+fc.4.bias 1
+epoch 01 | train_loss=0.6868 val_loss=0.6700 val_acc=0.615 val_auc=0.657 val_acc_opt=0.618 best_val_thresh=0.48 
+epoch 02 | train_loss=0.6698 val_loss=0.6444 val_acc=0.645 val_auc=0.710 val_acc_opt=0.653 best_val_thresh=0.48 
+epoch 03 | train_loss=0.6455 val_loss=0.6081 val_acc=0.671 val_auc=0.752 val_acc_opt=0.705 best_val_thresh=0.46 
+epoch 04 | train_loss=0.6103 val_loss=0.5518 val_acc=0.705 val_auc=0.788 val_acc_opt=0.711 best_val_thresh=0.53 
+epoch 05 | train_loss=0.5490 val_loss=0.4855 val_acc=0.745 val_auc=0.838 val_acc_opt=0.745 best_val_thresh=0.50 
+epoch 06 | train_loss=0.5120 val_loss=0.4994 val_acc=0.721 val_auc=0.827 val_acc_opt=0.746 best_val_thresh=0.66 
+epoch 07 | train_loss=0.5022 val_loss=0.4712 val_acc=0.740 val_auc=0.839 val_acc_opt=0.742 best_val_thresh=0.53 
+epoch 08 | train_loss=0.4921 val_loss=0.4550 val_acc=0.752 val_auc=0.851 val_acc_opt=0.752 best_val_thresh=0.50 
+epoch 09 | train_loss=0.4721 val_loss=0.4428 val_acc=0.758 val_auc=0.859 val_acc_opt=0.763 best_val_thresh=0.48 
+epoch 10 | train_loss=0.4575 val_loss=0.4396 val_acc=0.755 val_auc=0.863 val_acc_opt=0.763 best_val_thresh=0.55 
+epoch 11 | train_loss=0.4574 val_loss=0.4304 val_acc=0.764 val_auc=0.864 val_acc_opt=0.769 best_val_thresh=0.49 
+epoch 12 | train_loss=0.4387 val_loss=0.4242 val_acc=0.746 val_auc=0.859 val_acc_opt=0.758 best_val_thresh=0.46 
+epoch 13 | train_loss=0.4374 val_loss=0.4269 val_acc=0.746 val_auc=0.865 val_acc_opt=0.764 best_val_thresh=0.61 
+epoch 14 | train_loss=0.4337 val_loss=0.4113 val_acc=0.767 val_auc=0.871 val_acc_opt=0.770 best_val_thresh=0.49 
+epoch 15 | train_loss=0.4291 val_loss=0.4145 val_acc=0.757 val_auc=0.864 val_acc_opt=0.763 best_val_thresh=0.53 
+epoch 16 | train_loss=0.4236 val_loss=0.4200 val_acc=0.757 val_auc=0.860 val_acc_opt=0.761 best_val_thresh=0.49 
+epoch 17 | train_loss=0.4292 val_loss=0.4201 val_acc=0.752 val_auc=0.859 val_acc_opt=0.760 best_val_thresh=0.65 
+epoch 18 | train_loss=0.4146 val_loss=0.4290 val_acc=0.730 val_auc=0.850 val_acc_opt=0.742 best_val_thresh=0.60 
+epoch 19 | train_loss=0.4116 val_loss=0.4291 val_acc=0.740 val_auc=0.864 val_acc_opt=0.758 best_val_thresh=0.58 
+epoch 20 | train_loss=0.4108 val_loss=0.4172 val_acc=0.736 val_auc=0.859 val_acc_opt=0.754 best_val_thresh=0.46 
+epoch 21 | train_loss=0.4086 val_loss=0.4141 val_acc=0.752 val_auc=0.861 val_acc_opt=0.764 best_val_thresh=0.46 
+epoch 22 | train_loss=0.4088 val_loss=0.4109 val_acc=0.755 val_auc=0.864 val_acc_opt=0.766 best_val_thresh=0.57 
+epoch 23 | train_loss=0.3988 val_loss=0.4388 val_acc=0.737 val_auc=0.864 val_acc_opt=0.757 best_val_thresh=0.68 
+epoch 24 | train_loss=0.4033 val_loss=0.4175 val_acc=0.751 val_auc=0.863 val_acc_opt=0.760 best_val_thresh=0.61 
+epoch 25 | train_loss=0.3978 val_loss=0.4224 val_acc=0.761 val_auc=0.860 val_acc_opt=0.761 best_val_thresh=0.50 
+epoch 26 | train_loss=0.3992 val_loss=0.4101 val_acc=0.755 val_auc=0.863 val_acc_opt=0.761 best_val_thresh=0.53 
+epoch 27 | train_loss=0.4029 val_loss=0.4073 val_acc=0.761 val_auc=0.867 val_acc_opt=0.761 best_val_thresh=0.50 
+epoch 28 | train_loss=0.3975 val_loss=0.4196 val_acc=0.749 val_auc=0.863 val_acc_opt=0.766 best_val_thresh=0.61 
+epoch 29 | train_loss=0.3907 val_loss=0.4125 val_acc=0.758 val_auc=0.865 val_acc_opt=0.760 best_val_thresh=0.52 
+Early stopping at epoch 29. Best val AUC=0.871
+Saved best model to /home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_2.pth with AUC=0.871
+Finished run: gru_final_model_2
+Saved model: /home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_2.pth

@@ -4,3 +4,5 @@ symbols/
 deepfake_HPC/symbols
 symbols_split
 .idea/
+*.pth
+*.zip

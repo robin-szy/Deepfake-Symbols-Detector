@@ -1,13 +1,3 @@
-# Homework in Deep Learning: Deepfake written symbols detection
-# Author: Robin Szymanski
-
-# I hereby declare that I have used an LLM (ChatGPT, model GPT-5.3) to assist me with
-# some small passages of the code, debugging, improve some readability, to get new ideas,
-# and to assist me with training on the HPC server (by generating configs for
-# hyperparameter sweeps).
-# This is in accordance with the "Guidelines on the Use of Generative AI for
-# Teaching and Learning", Version: 1.0, Date: 2026-02-16
-
 import os
 import glob
 import random
@@ -25,17 +15,16 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", default="./symbols")
     parser.add_argument("--model-file", default="model.pth")
-    parser.add_argument("--epochs", type=int, default=14)
+    parser.add_argument("--epochs", type=int, default=8)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=0.001)
     parser.add_argument("--seq-max-len", type=int, default=512)
     parser.add_argument("--hidden-size", type=int, default=32)
-    parser.add_argument("--patience", type=int, default=20)
+    parser.add_argument("--patience", type=int, default=15)
     parser.add_argument("--min-delta", type=float, default=1e-4)
-    parser.add_argument("--dropout", type=float, default=0.1)
+    parser.add_argument("--dropout", type=float, default=0.0)
     parser.add_argument("--seed", type=int, default=523)
-    parser.add_argument("--final-train", action="store_true", default=True)
     return parser.parse_args()
 
 
@@ -70,23 +59,6 @@ def read_sequence(path, seq_max_len):
     stroke_change[1:] = (stroke_id[1:] != stroke_id[:-1]).astype(np.float32)
     dt_stroke_transition = dt * stroke_change
 
-    vx = np.gradient(x, time)
-    vy = np.gradient(y, time)
-
-    ax = np.gradient(vx, time)
-    ay = np.gradient(vy, time)
-
-    speed = np.sqrt(vx ** 2 + vy ** 2)
-    acceleration = np.sqrt(ax ** 2 + ay ** 2)
-    curvature = np.abs(vx * ay - vy * ax) / (speed ** 3 + 1e-6)
-    acceleration[stroke_change == 1] = 0
-    curvature[stroke_change == 1] = 0
-    speed = np.clip(speed, 0, 4)   # 1.0
-    acceleration = np.clip(acceleration, 0, 0.03)  # 0.03, 0.047
-    curvature = np.clip(curvature, 0, 0.1)   # 0.46; 0.192
-
-
-
     # Correction: Whenever stroke_ID changes, we need to reset r and dtheta to 0,
     # as the pen is lifted and moved to a new position.
     mask = stroke_change == 1
@@ -114,9 +86,7 @@ def read_sequence(path, seq_max_len):
         [
             #x,
             #y,
-            dx,
-            dy,
-            np.log1p(r),
+            r,
             #theta_unwrapped,
             theta_sin,
             theta_cos,
@@ -125,9 +95,6 @@ def read_sequence(path, seq_max_len):
             dt,
             #stroke_id,
             stroke_change,
-            np.log1p(curvature),
-            np.log1p(speed),
-            np.log1p(acceleration),
             #dt_stroke_transition,
         ],
         axis=1,
@@ -137,10 +104,10 @@ def read_sequence(path, seq_max_len):
         [
             float((dt > 50).any()),
             #dt_stroke_transition.max(),
-            np.log1p(len(df)),
-            np.log1p(time.max() - time.min()),
-            np.log1p(r.mean()),
-            np.log1p(r.std()),
+            len(df),
+            time.max() - time.min(),
+            r.mean(),
+            r.std(),
             dtheta.std(),
             #abs_dtheta.mean()
         ],
@@ -245,26 +212,19 @@ def collate_batch(batch):
 # Model
 # -----------------
 class SmallGRU(nn.Module):
-    def __init__(self, hidden_size, dropout=0.1, global_dropout=0.1):
+    def __init__(self, hidden_size, dropout=0.1):
         super().__init__()
 
         self.gru = nn.GRU(
-            input_size=11,
+            input_size=6,
             hidden_size=hidden_size,
             num_layers=1,
             batch_first=True,
         )
 
-        self.global_proj = nn.Sequential(  # Todo: Bottleneck
-            nn.Linear(6, 3),
-            nn.ReLU()
-        )
-
-        self.global_dropout = nn.Dropout(global_dropout)
-
         self.fc = nn.Sequential(
-            nn.LayerNorm(hidden_size + 3),
-            nn.Linear(hidden_size + 3, 16),
+            nn.LayerNorm(hidden_size + 6),
+            nn.Linear(hidden_size + 6, 16),
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(16, 1),
@@ -278,13 +238,7 @@ class SmallGRU(nn.Module):
         _, h = self.gru(packed)
         h_last = h[-1]
 
-        global_alpha = 1.0
-
-        global_features = self.global_dropout(global_features)
-        g = self.global_proj(global_features)
-        g = global_alpha * g
-        combined = torch.cat([h_last, g], dim=1)
-        #combined = torch.cat([h_last, global_features], dim=1)
+        combined = torch.cat([h_last, global_features], dim=1)
 
         return self.fc(combined).squeeze(1)
 
@@ -293,8 +247,6 @@ class SmallGRU(nn.Module):
 # Training
 # -----------------
 def train(args):
-
-
 
     set_seed(args.seed)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -309,19 +261,14 @@ def train(args):
     random.shuffle(real_items)
     random.shuffle(fake_items)
 
-    if args.final_train:
-        print("FINAL TRAINING MODE: Model is trained on validation and test set. No validation metrics or early stopping are used during training.")
-        train_items = real_items + fake_items
-        val_items = []
-    else:
-        split_real = int(0.8 * len(real_items))
-        split_fake = int(0.8 * len(fake_items))
+    split_real = int(0.98 * len(real_items))
+    split_fake = int(0.98 * len(fake_items))
 
-        train_items = real_items[:split_real] + fake_items[:split_fake]
-        val_items = real_items[split_real:] + fake_items[split_fake:]
+    train_items = real_items[:split_real] + fake_items[:split_fake]
+    val_items = real_items[split_real:] + fake_items[split_fake:]
 
-        if not train_items or not val_items:
-            raise ValueError(f"No CSV files found in {args.data_dir}/real and {args.data_dir}/fake")
+    if not train_items or not val_items:
+        raise ValueError(f"No CSV files found in {args.data_dir}/real and {args.data_dir}/fake")
 
     random.shuffle(train_items)
     random.shuffle(val_items)
@@ -339,6 +286,15 @@ def train(args):
         seq_std=seq_std,
     )
 
+    val_dataset = SymbolDataset(
+        val_items,
+        seq_max_len=args.seq_max_len,
+        global_mean=global_mean,
+        global_std=global_std,
+        seq_mean=seq_mean,
+        seq_std=seq_std,
+    )
+
     # Load datasets
     train_loader = DataLoader(
         train_dataset,
@@ -347,27 +303,13 @@ def train(args):
         shuffle=True,
         collate_fn=collate_batch,
     )
-
-    if not args.final_train:
-
-        val_dataset = SymbolDataset(
-            val_items,
-            seq_max_len=args.seq_max_len,
-            global_mean=global_mean,
-            global_std=global_std,
-            seq_mean=seq_mean,
-            seq_std=seq_std,
-        )
-
-        val_loader = DataLoader(
-            val_dataset,
-            #SymbolDataset(val_items),
-            batch_size=args.batch_size,
-            shuffle=False,
-            collate_fn=collate_batch,
-        )
-    else:
-        val_loader = None
+    val_loader = DataLoader(
+        val_dataset,
+        #SymbolDataset(val_items),
+        batch_size=args.batch_size,
+        shuffle=False,
+        collate_fn=collate_batch,
+    )
 
     model = SmallGRU(hidden_size=args.hidden_size, dropout=args.dropout).to(device)
 
@@ -420,54 +362,38 @@ def train(args):
 
         train_loss = total_train_loss / max(total_train, 1)
 
-        if not args.final_train:    # No evaluation and early stopping for final training
+        val_loss, val_acc, val_auc, val_threshold, val_acc_opt = evaluate(model, val_loader, device)
 
-            val_loss, val_acc, val_auc, val_threshold, val_acc_opt = evaluate(model, val_loader, device)
-
-            # Save best model (to be able to regress to earlier epoch)
-            improved = not np.isnan(val_auc) and val_auc > best_auc + args.min_delta # Min-delta for early stopping
-            if improved:
-                best_auc = val_auc
-                best_state = {
-                    k: v.detach().cpu().clone()
-                    for k, v in model.state_dict().items()
-                }
-                best_threshold = val_threshold
-                epochs_without_improvement = 0
-            else:
-                epochs_without_improvement += 1
-
-            print(
-                f"epoch {epoch + 1:02d} | "
-                f"train_loss={train_loss:.4f} "
-                f"val_loss={val_loss:.4f} "
-                f"val_acc={val_acc:.3f} "
-                f"val_auc={val_auc:.3f} "
-                f"val_acc_opt={val_acc_opt:.3f} "
-                f"best_val_thresh={val_threshold:.2f} "
-            )
-
-            # Early stopping
-            if epochs_without_improvement >= args.patience:
-                print(
-                    f"Early stopping at epoch {epoch + 1}. "
-                    f"Best val AUC={best_auc:.3f}"
-                )
-                break
-
+        # Save best model (to be able to regress to earlier epoch)
+        improved = not np.isnan(val_auc) and val_auc > best_auc + args.min_delta # Min-delta for early stopping
+        if improved:
+            best_auc = val_auc
+            best_state = {
+                k: v.detach().cpu().clone()
+                for k, v in model.state_dict().items()
+            }
+            best_threshold = val_threshold
+            epochs_without_improvement = 0
         else:
-            print(
-                f"epoch {epoch + 1:02d} | "
-                f"FINAL TRAINING MODE | "
-                f"train_loss={train_loss:.4f}"
-            )
+            epochs_without_improvement += 1
 
-    if args.final_train:
-        best_state = {
-            k: v.detach().cpu().clone()
-            for k, v in model.state_dict().items()
-        }
-        best_threshold = 0.5
+        print(
+            f"epoch {epoch + 1:02d} | "
+            f"train_loss={train_loss:.4f} "
+            f"val_loss={val_loss:.4f} "
+            f"val_acc={val_acc:.3f} "
+            f"val_auc={val_auc:.3f} "
+            f"val_acc_opt={val_acc_opt:.3f} "
+            f"best_val_thresh={val_threshold:.2f} "
+        )
+
+        # Early stopping
+        if epochs_without_improvement >= args.patience:
+            print(
+                f"Early stopping at epoch {epoch + 1}. "
+                f"Best val AUC={best_auc:.3f}"
+            )
+            break
 
     if best_state is not None:
         model.load_state_dict(best_state)
@@ -487,19 +413,12 @@ def train(args):
     }
 
     torch.save(checkpoint, args.model_file)
-    if args.final_train:
-        print(
-            f"Saved final model to {args.model_file} with threshold={best_threshold:.2f}")
-    else:
-        print(f"Saved best model to {args.model_file} with AUC={best_auc:.3f}")
+    print(f"Saved best model to {args.model_file} with AUC={best_auc:.3f}")
 
     # Summary for HPC testing (to not open every log file every time)
     results_file = "runs/results.csv"
     row = {
         "model_file": args.model_file,
-        "final_train": args.final_train,
-        "best_threshold": best_threshold,
-        "total_params": total_params,
         "hidden_size": args.hidden_size,
         "lr": args.lr,
         "weight_decay": args.weight_decay,
@@ -507,7 +426,9 @@ def train(args):
         "batch_size": args.batch_size,
         "dropout": args.dropout,
         "seed": args.seed,
-        "best_auc": best_auc if not args.final_train else None,
+        "best_auc": best_auc,
+        "best_threshold": best_threshold,
+        "total_params": total_params,
     }
 
     os.makedirs(os.path.dirname(results_file), exist_ok=True)
@@ -697,5 +618,5 @@ def test_on_labeled_set(test_dir, model_file):
 
 if __name__ == "__main__":
     train(parse_args())
-    #test_on_labeled_set("symbols_split/test", "models/gru_final_model_2.pth")
+    #test_on_labeled_set("symbols_split/test", "model.pth")
 

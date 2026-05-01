@@ -25,13 +25,13 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-dir", default="./symbols")
     parser.add_argument("--model-file", default="model.pth")
-    parser.add_argument("--epochs", type=int, default=14)
+    parser.add_argument("--epochs", type=int, default=42)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--weight-decay", type=float, default=0.001)
     parser.add_argument("--seq-max-len", type=int, default=512)
     parser.add_argument("--hidden-size", type=int, default=32)
-    parser.add_argument("--patience", type=int, default=20)
+    parser.add_argument("--patience", type=int, default=30)
     parser.add_argument("--min-delta", type=float, default=1e-4)
     parser.add_argument("--dropout", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=523)
@@ -251,11 +251,11 @@ class SmallGRU(nn.Module):
         self.gru = nn.GRU(
             input_size=11,
             hidden_size=hidden_size,
-            num_layers=1,
+            num_layers=2,
             batch_first=True,
         )
 
-        self.global_proj = nn.Sequential(  # Todo: Bottleneck
+        self.global_proj = nn.Sequential(
             nn.Linear(6, 3),
             nn.ReLU()
         )
@@ -574,59 +574,6 @@ def evaluate(model, loader, device):
     return avg_loss, acc, auc, best_threshold, best_acc
 
 
-def load_and_predict(directory, model_file):
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-    # Load model checkpoint
-    checkpoint = torch.load(model_file, map_location=device, weights_only=True)
-
-    hidden_size = int(checkpoint["hidden_size"])
-    dropout = float(checkpoint.get("dropout", 0.0))
-    model = SmallGRU(hidden_size=hidden_size, dropout=dropout).to(device)
-    model.load_state_dict(checkpoint["model_state_dict"])
-    model.eval()
-
-    seq_max_len = int(checkpoint["seq_max_len"])
-    global_mean = checkpoint["global_mean"].cpu().numpy()
-    global_std = checkpoint["global_std"].cpu().numpy()
-    seq_mean = checkpoint["seq_mean"].cpu().numpy()
-    seq_std = checkpoint["seq_std"].cpu().numpy()
-
-    threshold = checkpoint.get("threshold", 0.5)
-    if threshold is None:
-        threshold = 0.5
-    threshold = float(threshold)
-
-    pred_dict = {}
-    paths = sorted(glob.glob(os.path.join(directory, "*.csv")))
-
-    with torch.no_grad():
-        for path in paths:
-            # The following function read_sequence performs the two first steps required in eval.py:
-            # (1) Read the data from the provided directory
-            # (2) Prepare the data according to preprocessing pipeline of model training
-            seq, global_features = read_sequence(path, seq_max_len)
-
-            seq = (seq - seq_mean) / seq_std
-            global_features = (global_features - global_mean) / global_std
-
-            x = torch.tensor(seq, dtype=torch.float32).unsqueeze(0).to(device)
-            lengths = torch.tensor([len(seq)], dtype=torch.long).to(device)
-            g = torch.tensor(global_features, dtype=torch.float32).unsqueeze(0).to(device)
-
-            # Query the model with the data in order to get the predicted class probabilities for each instance.
-            logit = model(x, lengths, g)
-            prob_fake = torch.sigmoid(logit).item()
-
-            # Convert probabilities to labels (integer numbers): 0 for "real" and 1 for "fake".
-            pred = int(prob_fake >= threshold)
-            pred_dict[os.path.abspath(path)] = pred
-
-    # Return a dictionary where keys are absolute file paths and values are the predicted labels for each file
-    return pred_dict
-
-
 def test_on_labeled_set(test_dir, model_file):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -697,5 +644,5 @@ def test_on_labeled_set(test_dir, model_file):
 
 if __name__ == "__main__":
     train(parse_args())
-    #test_on_labeled_set("symbols_split/test", "models/gru_final_model_2.pth")
+    #test_on_labeled_set("symbols_split/test", "models/gru_final_model_1.pth")
 

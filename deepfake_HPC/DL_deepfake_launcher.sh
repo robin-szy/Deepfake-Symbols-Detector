@@ -7,7 +7,7 @@
 #SBATCH --partition=gpu
 #SBATCH --qos=normal
 #SBATCH --time=0-01:00:00 #DD-HH:MM:SS
-#SBATCH --array=1-5
+#SBATCH --array=1-1
 #SBATCH --output=logs/%x_%A_%a.out
 #SBATCH --error=logs/%x_%A_%a.err
 
@@ -31,7 +31,7 @@ cd "$PROJECT_DIR"
 
 CONFIG_LINE=$(sed -n "$((SLURM_ARRAY_TASK_ID + 1))p" "$CONFIG_FILE")
 
-IFS=',' read -r RUN_NAME HIDDEN_SIZE LR WEIGHT_DECAY SEQ_MAX_LEN BATCH_SIZE DROPOUT SEED <<< "$CONFIG_LINE"
+IFS=',' read -r RUN_NAME HIDDEN_SIZE LR WEIGHT_DECAY SEQ_MAX_LEN BATCH_SIZE DROPOUT SEED EPOCHS <<< "$CONFIG_LINE"
 
 MODEL_FILE="$RUNS_DIR/${RUN_NAME}.pth"
 
@@ -49,6 +49,7 @@ echo "LR:                  ${LR}"
 echo "Weight decay:        ${WEIGHT_DECAY}"
 echo "Seq max len:         ${SEQ_MAX_LEN}"
 echo "Batch size:          ${BATCH_SIZE}"
+echo "Epochs:              ${EPOCHS}"
 echo "Dropout:             ${DROPOUT}"
 echo "Seed:                ${SEED}"
 echo "CUDA available:"
@@ -60,10 +61,10 @@ if torch.cuda.is_available():
 PY
 echo "======================================"
 
-srun python -u train_model.py \
+srun python -u train.py \
     --data-dir "$DATA_DIR" \
     --model-file "$MODEL_FILE" \
-    --epochs 80 \
+    --epochs "$EPOCHS" \
     --batch-size "$BATCH_SIZE" \
     --lr "$LR" \
     --weight-decay "$WEIGHT_DECAY" \

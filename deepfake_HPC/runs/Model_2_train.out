@@ -1,0 +1,53 @@
+======================================
+SLURM job id:        5380338
+SLURM array task:    1
+Host:                iris-172
+Date:                Fri May  1 10:14:19 CEST 2026
+Project dir:         /home/users/rszymanski/deep_learning/deepfake_HW
+Data dir:            /home/users/rszymanski/deep_learning/deepfake_HW/symbols
+Run name:            gru_final_model_2
+Model file:          /home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_2.pth
+Hidden size:         32
+LR:                  0.001
+Weight decay:        0.001
+Seq max len:         512
+Batch size:          32
+Epochs:              14
+Dropout:             0.1
+Seed:                523
+CUDA available:
+True
+Tesla V100-SXM2-16GB
+======================================
+FINAL TRAINING MODE: Model is trained on validation and test set. No validation metrics or early stopping are used during training.
+Total parameters: 5004
+Parameters per layer:
+gru.weight_ih_l0 1056
+gru.weight_hh_l0 3072
+gru.bias_ih_l0 96
+gru.bias_hh_l0 96
+global_proj.0.weight 18
+global_proj.0.bias 3
+fc.0.weight 35
+fc.0.bias 35
+fc.1.weight 560
+fc.1.bias 16
+fc.4.weight 16
+fc.4.bias 1
+epoch 01 | FINAL TRAINING MODE | train_loss=0.6845
+epoch 02 | FINAL TRAINING MODE | train_loss=0.6601
+epoch 03 | FINAL TRAINING MODE | train_loss=0.6240
+epoch 04 | FINAL TRAINING MODE | train_loss=0.5475
+epoch 05 | FINAL TRAINING MODE | train_loss=0.4984
+epoch 06 | FINAL TRAINING MODE | train_loss=0.4887
+epoch 07 | FINAL TRAINING MODE | train_loss=0.4733
+epoch 08 | FINAL TRAINING MODE | train_loss=0.4669
+epoch 09 | FINAL TRAINING MODE | train_loss=0.4488
+epoch 10 | FINAL TRAINING MODE | train_loss=0.4335
+epoch 11 | FINAL TRAINING MODE | train_loss=0.4311
+epoch 12 | FINAL TRAINING MODE | train_loss=0.4274
+epoch 13 | FINAL TRAINING MODE | train_loss=0.4196
+epoch 14 | FINAL TRAINING MODE | train_loss=0.4152
+Saved final model to /home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_2.pth with threshold=0.50
+Finished run: gru_final_model_2
+Saved model: /home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_2.pth

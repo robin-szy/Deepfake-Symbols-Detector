@@ -1,0 +1,5 @@
+model_file,final_train,best_threshold,total_params,hidden_size,lr,weight_decay,seq_max_len,batch_size,dropout,seed,best_auc
+/home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_2.pth,False,0.48999999999999994,5004,32,0.001,0.001,512,32,0.1,523,0.8711767873604659
+/home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_2.pth,True,0.5,5004,32,0.001,0.001,512,32,0.1,523,
+/home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_orig.pth,32,0.001,0.001,512,32,0.1,523,0.8516442894825713,0.48999999999999994,4557
+/home/users/rszymanski/deep_learning/deepfake_HW/runs/gru_final_model_orig.pth,32,0.001,0.001,512,32,0.1,523,0.8935986159169549,0.4099999999999999,4557

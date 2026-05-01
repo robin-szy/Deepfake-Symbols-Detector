@@ -51,8 +51,7 @@ Repeat best model for different seed. So far:
 	Seed 2546, Colab: epoch 27 | val_acc=0.734 val_auc=0.846
 	Seed 9999, Colab: epoch 36 | val_acc=0.737 val_auc=0.852
 	
-	
-2) Bottleneck 3, all features(11), all global features, layers GRU = 1
+2) Bottleneck 3, all features(11), all global features, layers GRU = 1, parameters: 5004
 	Seed 523, PC: val_acc=0.730 val_auc=0.844
 	Seed 523: Colab: val_acc=0.734 val_auc=0.861
 	Seed 1001: PC: val_acc=0.740 val_auc=0.850
@@ -76,9 +75,40 @@ Repeat best model for different seed. So far:
 	Seed 2546, Colab: epoch 34 | val_acc=0.734 val_auc=0.852 
 	Seed 9999, Colab: epoch 23 |  val_acc=0.702 val_auc=0.829 
 
-Decide for model
-Implement final_train
-Create colab pth and PC pth file
+Seed 523: 	1) 0.86 	2) 0.86 	3) 0.87		-> 3
+Seed 1001: 	1) 0.84		2) 0.85		3) 0.845	-> Same
+Seed 226:	1) 0.845	2) 0.84		3) 0.845	-> Same
+Seed 2546:	1) 0.845	2) 0.83		3) 0.85		-> 1 + 3
+Seed 9999:	1) 0.85		2) 0.83		3) 0.83		-> 1
+
+
+Decide for model	-> Model 1 + 2
+Train model 1 + 2 on GPU iris cluster
+Which one better on test set
+
 Compare on test set with old model (first on old pth, then trained with final_train)
 
+
+Ref model full train
+Test samples: 368
+Test AUC: 0.7859
+Test accuracy @ threshold 0.500: 0.6984
+
+Ref model undertrained
+Test samples: 368
+Test AUC: 0.8004
+Test accuracy @ threshold 0.500: 0.6984
+
+Model_1
+Test samples: 368
+Test AUC: 0.8091
+Test accuracy @ threshold 0.500: 0.6929
+
+Model 2
+Test samples: 368
+Test AUC: 0.7944
+Test accuracy @ threshold 0.500: 0.6848
+
+
+Winner for me: Model 1
 

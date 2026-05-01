@@ -8,4 +8,7 @@
 - Decimal accuracy of fake is less than the one from the real one
 - Baraa uses 4 branch inception layer. He uses all 5 input features, dx, dy, and dy. He uses speed and acceleration, as well as curvature.
 
-Global features: Regularize like in other script
+
+# I hereby declare that I have used an LLM (ChatGPT, model GPT-5.3) to assist me with
+# some passages of the code, to get new ideas, and especially to assist me with training
+# on the HPC server.
